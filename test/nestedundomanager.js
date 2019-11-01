@@ -41,5 +41,17 @@ describe('nestedundomanager.js', function () {
       undoManager.undoList().should.be.deepEqual(['second action']);
       undoManager.redoList().should.be.deepEqual([]);
     });
+    it('can have actions that are made of actions',function(){
+      undoManager.begin('a composed action');
+      undoManager.add(dummy('first sub action'));
+      undoManager.add(dummy('second sub action'));
+      undoManager.undoList().should.be.deepEqual(['second action']);
+      undoManager.openAction.undoList().should.be.deepEqual(['first sub action','second sub action']);
+      undoManager.undo().should.be.equal('undo second sub action');
+      undoManager.openAction.undoList().should.be.deepEqual(['first sub action']);
+      undoManager.end();
+      undoManager.undoList().should.be.deepEqual(['second action','a composed action']);
+      should.equal(undoManager.openAction,undefined);
+    });
   })
 });

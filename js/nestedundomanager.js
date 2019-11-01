@@ -19,6 +19,7 @@
   };
 
   UndoManager.className = 'UndoManager';
+  UndoManager.prototype.isUndoManager = true;
 
   UndoManager.prototype.clear = function () {
     // clear the undo redo stack // should never be used by a user

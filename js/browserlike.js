@@ -6,6 +6,6 @@
 
 const jsdom = require("jsdom");
 const {JSDOM} = jsdom;
-const dom = new JSDOM(`<!DOCTYPE html><body><p>Hello world</p></body>`);
+const dom = new JSDOM(`<!DOCTYPE html><body></body>`);
 global.$ = require('jquery')(dom.window);
 console.info('uses browserlike to have a fake dom and jQuery');
