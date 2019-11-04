@@ -121,7 +121,7 @@
     define(function () {
       return UndoManager;
     });
-  } else if (typeof module !== 'undefined' && module.exports) {
+  } else if (process && !process.browser) {
     module.exports = UndoManager;
   } else {
     window.UndoManager = UndoManager;
