@@ -4,7 +4,8 @@
   "description": "a library to have a general Undo Redo system that is capable of nested action and control other undo system like editors, dom Manipulation etc..",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --reporter list"
+    "coverage": "nyc --reporter=html mocha",
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -24,10 +25,11 @@
   },
   "homepage": "https://github.com/tablord/nestedundomanager#readme",
   "devDependencies": {
-    "mocha": "^6.2.0",
-    "test-runner": "^0.6.0",
     "browserify": "^16.5.0",
-    "should": "^13.2.3"
+    "mocha": "^6.2.0",
+    "nyc": "^14.1.1",
+    "should": "^13.2.3",
+    "test-runner": "^0.6.0"
   },
   "dependencies": {
     "jquery": "^3.4.1",

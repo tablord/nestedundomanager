@@ -5,11 +5,9 @@
 //
 // (CC-BY-SA 2019)Marc Nicole  according to https://creativecommons.org/
 /////////////////////////////////////////////////////////////////////////////////
+'use strict';
 
-
-;(function () {
-
-  'use strict';
+(function () {
 
   let UndoManager = function (caption) {
     // the Class that has only one instance where all EDI related object register
@@ -41,6 +39,11 @@
   UndoManager.prototype.end = function () {
     // end an action and push it to the undoStack
     // return this for method chaining
+    if (this.openAction === undefined) throw Error('end is called on an already closed action');
+    if (this.openAction.openAction) {// if an action is already open delegate to this action (recursively)
+      this.openAction.end();
+      return this
+    }
     this.undoStack.push(this.openAction);
     this.openAction = undefined;
     return this;
@@ -63,7 +66,7 @@
     // undo the last action
     // return the caption of the undo action or undefined if nothing to undo
     if (this.openAction) { // if an openAction, delegate
-      return this.openAction.undo() ;
+      return this.openAction.undo();
     }
     if (this.undoStack.length === 0) return undefined;
     let action = this.undoStack.pop();
@@ -76,7 +79,7 @@
     // redo the last undone action
     // return the caption of the redo action or undefined if nothing to undo
     if (this.openAction) { // if an openAction, delegate
-      return this.openAction.redo() ;
+      return this.openAction.redo();
     }
 
     if (this.redoStack.length === 0) return undefined;
@@ -87,40 +90,41 @@
     return 'redo ' + action.caption;
   };
 
-  UndoManager.prototype.undoList = function() {
+  UndoManager.prototype.undoList = function () {
     // return a list of caption that are inside the undo stack
     return this.undoStack.map(action => action.caption || 'undefined')
   };
 
-  UndoManager.prototype.redoList = function() {
+  UndoManager.prototype.redoList = function () {
     // return a list of caption that are inside the undo stack
     return this.redoStack.map(action => action.caption || 'undefined')
   };
 
   UndoManager.prototype.debugHtml = function () {
     // display the UndoManager
-    let h = '<h2>redo</h2>';
-    for (let i = 0; i < this.redoStack.length; i++) {
-      h += '<div>' + this.redoStack[i].caption + '</div>';
-    }
-    h += this.openAction?'<h2>openAction</h2>'+this.openAction.debugHtml():'';
-    h += '<h2>undo</h2>';
+    let h = '<h2>undo</h2>';
     for (let i = this.undoStack.length - 1; i >= 0; i--) {
       h += '<div>' + this.undoStack[i].caption + '</div>';
+    }
+    h += this.openAction ? '<h2>openAction</h2>' + this.openAction.debugHtml() : '';
+    h += '<h2>redo</h2>';
+    for (let i = 0; i < this.redoStack.length; i++) {
+      h += '<div>' + this.redoStack[i].caption + '</div>';
     }
     return h;
   };
 
 
-	if (typeof define === 'function' && typeof define.amd === 'object' && define.amd) {
-		// AMD. Register as an anonymous module.
-		define(function() {
-			return UndoManager;
-		});
-	} else if (typeof module !== 'undefined' && module.exports) {
-		module.exports = UndoManager;
-	} else {
-		window.UndoManager = UndoManager;
-	}
+  if (typeof define === 'function' && typeof define.amd === 'object' && define.amd) {
+    // AMD. Register as an anonymous module.
+    /* istanbul ignore next */
+    define(function () {
+      return UndoManager;
+    });
+  } else if (typeof module !== 'undefined' && module.exports) {
+    module.exports = UndoManager;
+  } else {
+    window.UndoManager = UndoManager;
+  }
 
 }());

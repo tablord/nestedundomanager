@@ -30,7 +30,7 @@ if (!process.browser) {
 
   $.fn.undoableRemoveClass = function (className) {
     // limited version of $.removeClass, but that also register in undo the necessary object
-    let elements$ = this.not('.' + className).removeClass(className); // be sure to take only what will change
+    let elements$ = this.filter('.' + className).removeClass(className); // be sure to take only what will change
     $.undoManager.add({
       caption: 'remove class '+className,
       undo: function () {
@@ -67,8 +67,8 @@ if (!process.browser) {
     // this must be a single element
     console.assert(this.length === 1, 'undoableProp can operate only on single element');
     let element$ = this;
-    let oldValue = element$.prop(attribute);
-    element$.prop(attribute, value);
+    let oldValue = element$.prop(property);
+    element$.prop(property, value);
     $.undoManager.add({
       caption: 'set property '+property+' to '+value,
       undo: function () {
