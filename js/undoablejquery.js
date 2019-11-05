@@ -43,6 +43,24 @@ if (!process.browser) {
     return this;
   };
 
+  $.fn.undoableToggleClass = function(className, state) {
+    if (state === true) this.undoableAddClass(className);
+    else if (state === false) this.undoableRemoveClass(className);
+    else {
+      let elements$ = this;
+      elements$.toggleClass(className);
+      $.undoManager.add({
+        caption: 'toggle class ' + className,
+        undo: function () {
+          elements$.toggleClass(className)
+        },
+        redo: function () {
+          elements$.toggleClass(className)
+        }
+      });
+    }
+  };
+
   $.fn.undoableAttr = function (attribute, value) {
     // limited version of $.attr(), but that also register in undo the necessary object
     // this must be a single element

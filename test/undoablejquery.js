@@ -52,6 +52,46 @@ describe('undoablejquery.js', function () {
       $(e$[1]).hasClass('alert').should.be.false();
     });
   });
+  describe('undoableToggleClass', function () {
+    let e$ = $('<div>test</div><span class="alert">alert</span>');
+    e$.length.should.be.equal(2);
+    it('if state = false act like undoableRemoveClass', function () {
+      e$.undoableToggleClass('alert',false);
+      $(e$[0]).hasClass('alert').should.be.false();
+      $(e$[1]).hasClass('alert').should.be.false();
+      undoManager.undo().should.be.equal('undo remove class alert');
+      $(e$[0]).hasClass('alert').should.be.false();
+      $(e$[1]).hasClass('alert').should.be.true();
+      undoManager.redo().should.be.equal('redo remove class alert');
+      $(e$[0]).hasClass('alert').should.be.false();
+      $(e$[1]).hasClass('alert').should.be.false();
+      undoManager.undo();
+    });
+    it('if state = is like undoableAddClass', function () {
+      e$.undoableToggleClass('alert',true);
+      $(e$[0]).hasClass('alert').should.be.true();
+      $(e$[1]).hasClass('alert').should.be.true();
+      undoManager.undo().should.be.equal('undo add class alert');
+      $(e$[0]).hasClass('alert').should.be.false();
+      $(e$[1]).hasClass('alert').should.be.true();
+      undoManager.redo().should.be.equal('redo add class alert');
+      $(e$[0]).hasClass('alert').should.be.true();
+      $(e$[1]).hasClass('alert').should.be.true();
+      undoManager.undo();
+    });
+    it('if state = undefined toggle the class', function () {
+      e$.undoableToggleClass('alert');
+      $(e$[0]).hasClass('alert').should.be.true();
+      $(e$[1]).hasClass('alert').should.be.false();
+      undoManager.undo().should.be.equal('undo toggle class alert');
+      $(e$[0]).hasClass('alert').should.be.false();
+      $(e$[1]).hasClass('alert').should.be.true();
+      undoManager.redo().should.be.equal('redo toggle class alert');
+      $(e$[0]).hasClass('alert').should.be.true();
+      $(e$[1]).hasClass('alert').should.be.false();
+      undoManager.undo();
+    });
+  });
   describe('undoableAttr', function () {
     let e$ = $('<div itemprop="e0">test</div>');
     it('can change the attribute only on one element', function () {
