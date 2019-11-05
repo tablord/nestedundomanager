@@ -67,11 +67,15 @@ describe('nestedundomanager.js', function () {
 
       undoManager.undoList().should.be.deepEqual(['second action']);
       undoManager.openAction.undoList().should.be.deepEqual(['first sub action','second sub action','third sub action (composed)']);
-      undoManager.undo().should.be.equal('undo third sub action (composed)');
+      undoManager.undo().should.be.equal('undo third sub action (composed)(second sub sub action,first sub sub action)');
       undoManager.openAction.undoList().should.be.deepEqual(['first sub action','second sub action']);
       undoManager.end();
       undoManager.undoList().should.be.deepEqual(['second action','a composed action']);
       should.equal(undoManager.openAction,undefined);
+    });
+    it('atomic actions (that had a .begin(...)  .end()) behaves as one single action even if they are composed of sub actions', function(){
+      undoManager.undo().should.be.equal('undo a composed action(second sub action,first sub action)');
+      undoManager.redo().should.be.equal('redo a composed action(first sub action,second sub action)');
     });
     it('can display itself in html',function(){
       console.info(undoManager.debugHtml());

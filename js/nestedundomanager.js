@@ -25,6 +25,7 @@
     this.undoStack = [];  // array of [[undoAction]]
     this.redoStack = [];
     this.openAction = undefined;  // the action in construction
+    this.isAtomic = false; // if true, considered as one single action. this is the case after an end()
     return this;
   };
 
@@ -44,6 +45,8 @@
       this.openAction.end();
       return this
     }
+    this.openAction.isAtomic = true;
+    this.openAction.redoStack = []; // as this becomes atomic, we can no longer redo undone things
     this.undoStack.push(this.openAction);
     this.openAction = undefined;
     return this;
@@ -69,10 +72,20 @@
       return this.openAction.undo();
     }
     if (this.undoStack.length === 0) return undefined;
+    if (this.isAtomic) {
+      let res = [];
+      while (this.undoStack.length) {
+        let action = this.undoStack.pop();
+        action.undo();
+        this.redoStack.push(action);
+        res.push(action.caption);
+      }
+      return '('+res.join(',')+')';
+    }
     let action = this.undoStack.pop();
-    action.undo();
+    let r = action.undo() || '';
     this.redoStack.push(action);
-    return 'undo ' + action.caption;
+    return 'undo ' + action.caption+ r;
   };
 
   UndoManager.prototype.redo = function () {
@@ -83,11 +96,20 @@
     }
 
     if (this.redoStack.length === 0) return undefined;
-
+    if (this.isAtomic) {
+      let res = [];
+      while (this.redoStack.length) {
+        let action = this.redoStack.pop();
+        action.redo();
+        this.undoStack.push(action);
+        res.push(action.caption);
+      }
+      return '('+res.join(',')+')';
+    }
     let action = this.redoStack.pop();
-    action.redo();
+    let r = action.redo() || '';
     this.undoStack.push(action);
-    return 'redo ' + action.caption;
+    return 'redo ' + action.caption + r;
   };
 
   UndoManager.prototype.undoList = function () {
