@@ -52,6 +52,15 @@
     return this;
   };
 
+  UndoManager.nop = function() {};
+
+  UndoManager.prototype.execute = function(caption,undo,redo){
+    // create an action and execute it (=redo it)
+    let action = {caption:caption,undo:(undo || UndoManager.nop),redo:(redo || UndoManager.nop)};
+    action.redo();
+    this.add(action);
+  };
+
   UndoManager.prototype.add = function (undoObj) {
     // add a function object to the openAction
     // -undoObj: an [[undoObj]]

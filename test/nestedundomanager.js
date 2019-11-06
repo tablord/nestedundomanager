@@ -9,7 +9,6 @@ if (!process.browser) {
   var UndoManager = require('../js/nestedundomanager');
 }
 
-function dummy(caption) {return {caption:caption,undo:function(){},redo:function(){}}};
 
 describe('nestedundomanager.js', function () {
   describe('UndoManager', function () {
@@ -19,7 +18,7 @@ describe('nestedundomanager.js', function () {
       undoManager.redoStack.should.be.deepEqual([]);
     });
     it('must keep one action in the undo stack if added',function () {
-      undoManager.add(dummy('first action'));
+      undoManager.execute('first action');
       undoManager.undoList().should.be.deepEqual(['first action']);
       undoManager.redoList().should.be.deepEqual([]);
     });
@@ -47,17 +46,17 @@ describe('nestedundomanager.js', function () {
       undoManager.undo().should.be.equal('undo first action');
       undoManager.undoList().should.be.deepEqual([]);
       undoManager.redoList().should.be.deepEqual(['first action']);
-      undoManager.add(dummy('second action'));
+      undoManager.execute('second action');
       undoManager.undoList().should.be.deepEqual(['second action']);
       undoManager.redoList().should.be.deepEqual([]);
     });
     it('can have actions that are made of actions',function(){
       undoManager.begin('a composed action');
-      undoManager.add(dummy('first sub action'));
-      undoManager.add(dummy('second sub action'));
+      undoManager.execute('first sub action');
+      undoManager.execute('second sub action');
       undoManager.begin('third sub action (composed)');
-      undoManager.add(dummy('first sub sub action'));
-      undoManager.add(dummy('second sub sub action'));
+      undoManager.execute('first sub sub action');
+      undoManager.execute('second sub sub action');
       undoManager.undo().should.be.equal('undo second sub sub action');
       undoManager.undo().should.be.equal('undo first sub sub action');
       should.equal(undoManager.undo(),undefined);
@@ -82,6 +81,6 @@ describe('nestedundomanager.js', function () {
     });
     it('throw an error if you end() without begin()',function(){
       (function(){undoManager.end()}).should.throw('end is called on an already closed action');
-    })
+    });
   })
 });
