@@ -4,7 +4,7 @@
 'use strict';
 
 
-if (!process.browser) {
+if ((typeof process !== 'undefined') && !process.browser) {
   require('should');
   var UndoManager = require('../js/nestedundomanager');
   require('../js/undoablejquery');

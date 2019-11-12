@@ -1,6 +1,6 @@
 'use strict';
 
-if (!process.browser) {
+if ((typeof process !== 'undefined') && !process.browser) {
     console.log('running in nodejs');
     require('./browserlike');
 }

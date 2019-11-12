@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Editor test & demo</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/ace.js" type="text/javascript"
+            charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/ext-modelist.js" type="text/javascript"
+            charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/ext-language_tools.js" type="text/javascript"
+            charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/mode-css.js" type="text/javascript"
+            charset="utf-8"></script>
+    <script src="../js/nestedundomanager.js"></script>
+    <script src="../js/undoablejquery.js"></script>
+    <script src="../js/aceundomanager.js"></script>
+
+
+    <script src="https://unpkg.com/chai/chai.js"></script>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/should/should.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css"/>
+
+    <style>
+        .editable {
+            border: 1px solid black;
+            margin: 5px;
+        }
+
+        .selected {
+            border: 3px solid red;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <button id="undo">undo</button>
+    <button id="redo">redo</button>
+</div>
+<div id="editor" style="height:100px"></div>
+<div class="editable" id="div1">click to select</div>
+<div class="editable" id="div2">any of those div</div>
+<div class="editable" id="div3">or <b>this</b> one</div>
+<script>
+  var editor;
+  var undoManager = new UndoManager();
+  $.setUndoManager(undoManager);       // use the general undoManager for jquery extension
+  var selected$ = $();                 // initially selected is empty
+                                       // by convention any variable ending with $ is a jquery
+
+  function onClick(event) {
+    undoableSelect($(event.currentTarget));
+  }
+
+  function onEditorChange(e) {
+    if (e) console.info('onEditorChange: %s',JSON.stringify(e.data));
+    selected$.html(editor.getValue());
+  }
+
+  function undoableSelect(element$) {
+    let previous$ = selected$; // copy for the closure
+    undoManager.add({
+      caption: 'select ' + element$.attr('id'),
+      undo: function () {
+        select(previous$)
+      },
+      redo: function () {
+        select(element$)
+      }
+    });
+    select(element$);  // this has to be done after adding the undo action since select will trigger
+                       // editor.onChangeSession that will also register an undo delegate
+  }
+
+  function select(element$) {
+    if (element$[0] === selected$[0]) return; // same element, nothing to do
+    selected$.data('editorSession', editor.getSession());  // store the current editor session in the element
+    selected$.html(editor.getValue());
+    element$.addClass('selected');
+    selected$.removeClass('selected');
+    let session = element$.data('editorSession');
+    if (!session) {
+      session = new ace.EditSession(element$.html() || '');
+      session.element$ = element$;
+      session.setUndoManager(new AceUndoManager(undoManager)); // the replacement undo manager
+    }
+    editor.setSession(session); //restore or create a session
+    selected$ = element$;
+  }
+
+  $(function () {
+    // once everything is loaded
+    // create the editor
+    var editor = ace.edit(document.getElementById('editor'));
+    editor.on('change',onEditorChange);
+
+    $('.editable').click(onClick);
+    $('#undo').click(function () {
+      console.info('#undo>' + undoManager.undo())
+    });
+    $('#redo').click(function () {
+      console.info('#redo>' + undoManager.redo())
+    });
+  });
+  editor = ace.edit(document.getElementById('editor'));
+
+</script>
+
+<button id="mocha_test">run mocha test</button>
+<div id="mocha"></div>
+
+<script>
+  mocha.setup('bdd');
+  mocha.checkLeaks();
+  describe('aceundomanager.js', function () {
+    it('can select div1 by clicking it', function () {
+      $('#div1').click().hasClass('selected').should.be.true();
+    });
+    it('can select div2 by clicking it', function () {
+      $('#div2').click().hasClass('selected').should.be.true();
+    });
+    it('can undo selection and go back to div1', function(){
+      undoManager.undo();
+      $('#div1').hasClass('selected').should.be.true();
+    });
+    it('can edit (replace click by CLICK)',function () {
+      editor.session.replace(new ace.Range(0,0,0,5),'CLICK');
+      editor.getValue().should.be.equal('CLICK to select');
+    });
+    it('can select div2 by clicking it', function () {
+      $('#div2').click().hasClass('selected').should.be.true();
+    });
+    it('can undo the select and then the text change', function(){
+      undoManager.undo().should.be.equal('undo select div2');
+      undoManager.undo().should.be.equal('undo Ace edition');
+      undoManager.undo().should.be.equal('undo Ace edition');
+    })
+  });
+
+  $(function () {
+    $('#mocha_test').click(function () {
+
+      mocha.run();
+    })
+
+  })
+</script>
+</body>
+</html>
