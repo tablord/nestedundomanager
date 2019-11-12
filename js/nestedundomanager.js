@@ -168,7 +168,7 @@
     define(function () {
       return UndoManager;
     });
-  } else if (process && !process.browser) {
+  } else if ((typeof process !== 'undefined') && !process.browser) {
     module.exports = UndoManager;
   } else {
     window.UndoManager = UndoManager;
