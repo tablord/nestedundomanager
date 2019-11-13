@@ -76,6 +76,17 @@ describe('nestedundomanager.js', function () {
       undoManager.undo().should.be.equal('undo a composed action(second sub action,first sub action)');
       undoManager.redo().should.be.equal('redo a composed action(first sub action,second sub action)');
     });
+    it('can merge an action with the previous atomic action',function(){
+      undoManager.mergeWithPrevious({caption:'third sub action',undo:UndoManager.nop,redo:UndoManager.nop});
+      undoManager.undoList().should.be.deepEqual(['second action','a composed action']);
+      undoManager.undoStack[1].undoList().should.be.deepEqual(['first sub action','second sub action','third sub action']);
+    });
+    it('can merge with the previous non atomic action by creating a new atomic action',function(){
+      undoManager.execute('non atomic action');
+      undoManager.mergeWithPrevious({caption:'sub action',undo:UndoManager.nop,redo:undoManager.nop},'new atomic action');
+      undoManager.undoList(['second action','a composed action','new atomic action'])
+      undoManager.undoStack[2].undoList().should.be.deepEqual(['non atomic action','sub action']);
+    });
     it('can display itself in html',function(){
       console.info(undoManager.debugHtml());
     });

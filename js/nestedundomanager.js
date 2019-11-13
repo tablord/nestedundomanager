@@ -52,6 +52,27 @@
     return this;
   };
 
+  UndoManager.prototype.mergeWithPrevious = function(action,caption){
+    // add action by merging it with the previous Undo action
+    // if there is no previous action throw an error
+    // if the previous action is Atomic, action will be pushed into its undo list
+    // else a new Atomic action is created, the previous action is pushed ito it and action is then pushed
+    // this new atomic action will have caption if defined, or the previous action.caption
+    if (this.openAction) {
+      this.openAction.mergeWithPrevious(action);
+      return this;
+    }
+    let previousAction = this.undoStack.pop();
+    if (!previousAction) throw Error("can't merge action if nothing in undoStack");
+    if (!previousAction.isAtomic) {
+      let p = previousAction;
+      previousAction = new UndoManager(caption || previousAction.caption);
+      previousAction.add(p).isAtomic = true;
+    }
+    previousAction.add(action);
+    this.undoStack.push(previousAction);
+    return this;
+  };
   UndoManager.nop = function() {};
 
   UndoManager.prototype.execute = function(caption,undo,redo){
@@ -61,15 +82,15 @@
     this.add(action);
   };
 
-  UndoManager.prototype.add = function (undoObj) {
+  UndoManager.prototype.add = function (action) {
     // add a function object to the openAction
     // -undoObj: an [[undoObj]]
     // return this for method chaining
     if (this.openAction) {
-      this.openAction.add(undoObj);
+      this.openAction.add(action);
       return this;
     }
-    this.undoStack.push(undoObj);
+    this.undoStack.push(action);
     this.redoStack = [];
     return this;
   };

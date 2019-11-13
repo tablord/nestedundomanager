@@ -57,7 +57,7 @@
   }
 
   function onEditorChange(e) {
-    if (e) console.info('onEditorChange: %s',JSON.stringify(e.data));
+    if (e) console.info('onEditorChange: %s',JSON.stringify(e));
     selected$.html(editor.getValue());
   }
 
@@ -110,7 +110,7 @@
 
 </script>
 
-<button id="mocha_test">run mocha test</button>
+<button id="mocha_test">run mocha test (it will pass only if after a page load or refresh !!)</button>
 <div id="mocha"></div>
 
 <script>
@@ -136,8 +136,7 @@
     });
     it('can undo the select and then the text change', function(){
       undoManager.undo().should.be.equal('undo select div2');
-      undoManager.undo().should.be.equal('undo Ace edition');
-      undoManager.undo().should.be.equal('undo Ace edition');
+      undoManager.undo().should.be.equal('undo edit*(Ace insert,Ace remove)');
     })
   });
 
