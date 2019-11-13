@@ -10,6 +10,7 @@ if ((typeof process !== 'undefined') && !process.browser) {
 }
 
 
+
 describe('nestedundomanager.js', function () {
   describe('UndoManager', function () {
     let undoManager = new UndoManager('main');
@@ -93,5 +94,41 @@ describe('nestedundomanager.js', function () {
     it('throw an error if you end() without begin()',function(){
       (function(){undoManager.end()}).should.throw('end is called on an already closed action');
     });
+    it('can have delegateAction that will be in charge of the undo redo as long as needed',function(){
+      undoManager.add({
+        caption:'delegate action',
+        i:3,
+        hasUndoDelegation: function() {
+          if (this.i >= 0) {
+            console.info('accept undo delegation %d', this.i);
+            return true
+          }
+          console.info('refuse undo delegation %d', this.i);
+          return false
+        },
+        hasRedoDelegation: function(){
+          if (this.i < 3) {
+            console.info('accept redo delegation %d', this.i);
+            return true
+          }
+          console.info('refuse redo delegation %d', this.i);
+          return false
+        },
+        undo:function(){return 'delegated undo '+this.i-- },
+        redo:function(){return 'delegated redo '+(++this.i) }
+      });
+      undoManager.undoList().should.be.deepEqual(['second action','a composed action','delegate action']);
+      undoManager.undo().should.be.equal('delegated undo 3');
+      undoManager.undo().should.be.equal('delegated undo 2');
+      undoManager.undo().should.be.equal('delegated undo 1');
+      undoManager.undo().should.be.equal('delegated undo 0');
+      undoManager.undo().should.be.equal('undo a composed action(second sub action,first sub action)');
+      undoManager.redo().should.be.equal('redo a composed action(first sub action,second sub action)');
+      undoManager.redo().should.be.equal('delegated redo 0');
+      undoManager.redo().should.be.equal('delegated redo 1');
+      undoManager.redo().should.be.equal('delegated redo 2');
+      undoManager.redo().should.be.equal('delegated redo 3');
+      should.equal(undoManager.redo(),undefined);
+    })
   })
 });

@@ -102,6 +102,13 @@
       return this.openAction.undo();
     }
     if (this.undoStack.length === 0) return undefined;
+    let nextUndoAction = this.undoStack[this.undoStack.length-1];
+    if (nextUndoAction.hasUndoDelegation){
+      if (nextUndoAction.hasUndoDelegation()) { // as long as is has delegation no stack change
+        return nextUndoAction.undo();
+      }
+      this.redoStack.push(this.undoStack.pop());
+    }
     if (this.isAtomic) {
       let res = [];
       while (this.undoStack.length) {
@@ -113,6 +120,7 @@
       return '('+res.join(',')+')';
     }
     let action = this.undoStack.pop();
+    if (!action) return undefined;
     let r = action.undo() || '';
     this.redoStack.push(action);
     return 'undo ' + action.caption+ r;
@@ -126,6 +134,13 @@
     }
 
     if (this.redoStack.length === 0) return undefined;
+    let nextRedoAction = this.redoStack[this.redoStack.length-1];
+    if (nextRedoAction.hasRedoDelegation) {
+      if (nextRedoAction.hasRedoDelegation()) { // as long as is has delegation no stack change
+        return nextRedoAction.redo();
+      }
+      this.undoStack.push(this.redoStack.pop());
+    }
     if (this.isAtomic) {
       let res = [];
       while (this.redoStack.length) {
@@ -137,6 +152,7 @@
       return '('+res.join(',')+')';
     }
     let action = this.redoStack.pop();
+    if (!action) return undefined;
     let r = action.redo() || '';
     this.undoStack.push(action);
     return 'redo ' + action.caption + r;
