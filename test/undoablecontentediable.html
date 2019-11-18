@@ -33,7 +33,7 @@
 
   // Options de l'observateur (quelles sont les mutations à observer)
   var config = {
-    attributes: true,
+    attributes: false,
     childList: true,
     characterData: true,
     characterDataOldValue: true,
@@ -177,16 +177,18 @@
     let action = {
       caption: 'mutations(' + mutationList.length + ')',
       selectedElement: selectedElement$[0],
+      previousSelection: globalUndoManager.previousSelection,
+      currentSelection: $.extend({},window.getSelection()),
       undo: function () {
         observer.disconnect(); // no capture of the undo since will be put in redo
         undoMutations(mutationList);
-        //todo set back the selection
+        window.getSelection().collapse(this.previousSelection.focusNode,this.previousSelection.focusOffset);
         observer.observe(this.selectedElement, config);
       },
       redo: function () {
         observer.disconnect(); // no capture of the undo since will be put in redo
         redoMutations(mutationList);
-        //todo set back the selection
+        window.getSelection().collapse(this.currentSelection.focusNode,this.currentSelection.focusOffset);
         observer.observe(this.selectedElement, config);
       }
     };
@@ -226,7 +228,7 @@
   });
 
   window.document.addEventListener('selectionchange', () => {
-    globalUndoManager.previousSelection = window.getSelection();
+    globalUndoManager.previousSelection = $.extend({},window.getSelection());
   });
 </script>
 </body>
