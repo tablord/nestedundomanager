@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test for undoable contenteditable elements</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+            crossorigin="anonymous"></script>
+    <script src="../js/nestedundomanager.js"></script>
+    <script src="../js/undoablejquery.js"></script>
+
+    <script src="https://unpkg.com/chai/chai.js"></script>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/should/should.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css"/>
+</head>
+<body>
+
+<h1 id="title" contenteditable="true">this title is editable</h1>
+<div id="text" contenteditable="true">as well as this division</div>
+<div id="test2" contenteditable="true">as well as this division</div>
+<div>but not this one</div>
+
+
+<script>
+  // create a global undo manager
+  let globalUndoManager = new UndoManager;
+  let selectedElement$ = $();
+
+  // Options de l'observateur (quelles sont les mutations à observer)
+  var config = {
+    attributes: true,
+    childList: true,
+    characterData: true,
+    characterDataOldValue: true,
+    subtree: true
+  };
+
+  function setMutationNewValue(mutationList) {
+    // for each characterData mutation, set an extra newValue field, with the current nodeValue, in order to have in during redo
+    for (let mutation in mutationList) {
+      if (mutation.type === 'characterData') mutation.newValue = mutation.target.nodeValue;
+    }
+  }
+
+  function undoMutations(mutationList) {
+    for (let i = mutationList.length - 1; i >= 0; i--) {
+      let mutation = mutationList[i];
+      if (mutation.type === 'characterData') {
+        console.info('changed %s -> %s', mutation.target.nodeValue, mutation.oldValue);
+        mutation.target.nodeValue = mutation.oldValue;
+      } else if (mutation.type === 'childList') {
+        if (mutation.addedNodes.length > 0) {
+          console.info('detach %d nodes', mutation.addedNodes.length);
+          $(mutation.addedNodes).detach();
+        }
+        if (mutation.removedNodes.length > 0) {
+          if (mutation.previousSibling) {
+            $(mutation.removedNodes).insertAfter(mutation.previousSibling);
+            console.info('insert after %d nodes', mutation.removedNodes.length);
+          } else if (mutation.nextSibling) {
+            $(mutation.removedNodes).insertBefore(mutation.nextSibling);
+            console.info('insert before %d nodes', mutation.removedNodes.length);
+          } else {
+            $(mutation.target).append(mutation.removedNodes);
+            console.info('append %d nodes', mutation.removedNodes.length);
+          }
+        }
+      }
+    }
+  }
+
+  /*
+  // callback function at any mutation
+  var callback = function (mutationsList) {
+    if (globalUndoManager.fromUndo) return; // mutation occurred during an undo / redo
+    globalUndoManager.begin('mutation*');
+
+    let previousSelectedNode = globalUndoManager.previousSelection.focusNode;
+    let previousSelectedOffset = globalUndoManager.previousSelection.focusOffset;
+    let selection = window.getSelection();
+    globalUndoManager.previousSelection = selection;
+    globalUndoManager.add({
+      caption: 'selection',
+      undo: function () {
+        window.getSelection().collapse(previousSelectedNode, previousSelectedOffset);
+      },
+      redo: function () {
+        window.getSelection().collapse(selection.focusNode, selection.focusOffset);
+      }
+    });
+
+    for (let i = mutationsList.length - 1; i >= 0; i--) {
+      let mutation = mutationsList[i];
+      if (mutation.type === 'characterData') {
+        let newValue = mutation.target.nodeValue;
+        globalUndoManager.add({
+          caption: 'text change ' + mutation.oldValue + ' -> ' + newValue,
+          undo: function () {
+            mutation.target.nodeValue = mutation.oldValue;
+          },
+          redo: function () {
+            mutation.target.nodeValue = mutation.newValue;
+          }
+        });
+      } else if (mutation.type === 'childList') {
+        console.log('A child node has been added or removed.');
+        globalUndoManager.add({
+          caption: 'childList ' + (mutation.addedNodes.length ? 'add: ' + $.map(mutation.addedNodes, n => n.nodeValue).join() : '') +
+            (mutation.removedNodes.length ? 'removed: ' + $.map(mutation.removedNodes, n => n.nodeValue).join() : ''),
+          undo: function () {
+            if (mutation.addedNodes.length > 0) $(mutation.addedNodes).detach();
+            if (mutation.removedNodes.length > 0) {
+              if (mutation.previousSibling) $(mutation.removedNodes).insertAfter(mutation.previousSibling);
+              else if (mutation.nextSibling) $(mutation.removedNodes).insertBefore(mutation.nextSibling)
+              else $(mutation.target).append(mutation.removedNodes);
+            }
+          },
+          redo: function () {
+            if (mutation.removedNodes.length > 0) $(mutation.removedNodes).detach();
+            if (mutation.addedNodes.length > 0) {
+              if (mutation.previousSibling) $(mutation.addedNodes).insertAfter(mutation.previousSibling);
+              else if (mutation.nextSibling) $(mutation.addedNodes).insertBefore(mutation.nextSibling)
+              else $(mutation.target).append(mutation.addedNodes);
+            }
+          },
+        })
+      } else {
+        console.warn('another type of mutation %s', mutation.type);
+      }
+    }
+
+    globalUndoManager.end();
+  };
+
+   */
+  let callback = function(mutationList){
+    let action = {
+      caption: 'mutations('+mutationList.length+')',
+      selectedElement: selectedElement$[0],
+      undo:function () {
+        observer.disconnect(); // no capture of the undo since will be put in redo
+        undoMutations(mutationList);
+        //todo set back the selection
+        observer.observe(this.selectedElement,config);
+      },
+      redo:function() {
+        //todo
+      }
+    };
+    console.info(action);
+    globalUndoManager.add(action);
+  };
+
+
+  // Créé une instance de l'observateur lié à la fonction de callback
+  var observer = new MutationObserver(callback);
+
+
+  function select(element) {
+    observer.disconnect();
+    selectedElement$ = $(element);
+    if (element.isContentEditable) {
+      observer.observe(element, config);
+    }
+  }
+
+
+  $('[contenteditable="true"]')
+  .click(function (event) {
+    select(event.currentTarget);
+    console.info('selected %s', selectedElement$.attr('id'));
+  })
+  .keydown(function (event) {
+    if (event.keyCode === 90 && event.ctrlKey) {
+      event.preventDefault();
+      return false;
+    }
+    if (event.keyCode === 89 && event.ctrlKey) {
+      event.preventDefault();
+      return false;
+    }
+
+  });
+
+  window.document.addEventListener('selectionchange', () => {
+    globalUndoManager.previousSelection = window.getSelection();
+  });
+</script>
+</body>
+</html>
