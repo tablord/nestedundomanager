@@ -16,7 +16,10 @@
     <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css"/>
 </head>
 <body>
-
+<div>
+    <button id="undo" onclick="globalUndoManager.undo()">undo</button>
+    <button id="redo" onclick="globalUndoManager.redo()">redo</button>
+</div>
 <h1 id="title" contenteditable="true">this title is editable</h1>
 <div id="text" contenteditable="true">as well as this division</div>
 <div id="test2" contenteditable="true">as well as this division</div>
@@ -39,8 +42,11 @@
 
   function setMutationNewValue(mutationList) {
     // for each characterData mutation, set an extra newValue field, with the current nodeValue, in order to have in during redo
-    for (let mutation in mutationList) {
-      if (mutation.type === 'characterData') mutation.newValue = mutation.target.nodeValue;
+    for (let i = 0; i < mutationList.length;i++) {
+      let mutation = mutationList[i];
+      if (mutation.type === 'characterData') {
+        mutation.newValue = mutation.target.nodeValue;
+      }
     }
   }
 
@@ -67,6 +73,37 @@
             console.info('append %d nodes', mutation.removedNodes.length);
           }
         }
+      } else {
+        console.warn('mutation type %s not implemented yet', mutation.type);
+      }
+    }
+  }
+
+  function redoMutations(mutationList) {
+    for (let i = 0; i < mutationList.length; i++) {
+      let mutation = mutationList[i];
+      if (mutation.type === 'characterData') {
+        console.info('changed %s -> %s', mutation.target.nodeValue, mutation.newValue);
+        mutation.target.nodeValue = mutation.newValue;
+      } else if (mutation.type === 'childList') {
+        if (mutation.removedNodes.length > 0) {
+          console.info('detach %d nodes', mutation.removedNodes.length);
+          $(mutation.removedNodes).detach();
+        }
+        if (mutation.addedNodes.length > 0) {
+          if (mutation.previousSibling) {
+            $(mutation.addedNodes).insertAfter(mutation.previousSibling);
+            console.info('insert after %d nodes', mutation.addedNodes.length);
+          } else if (mutation.nextSibling) {
+            $(mutation.addedNodes).insertBefore(mutation.nextSibling);
+            console.info('insert before %d nodes', mutation.addedNodes.length);
+          } else {
+            $(mutation.target).append(mutation.addedNodes);
+            console.info('append %d nodes', mutation.addedNodes.length);
+          }
+        }
+      } else {
+        console.warn('mutation type %s not implemented yet', mutation.type);
       }
     }
   }
@@ -135,18 +172,22 @@
   };
 
    */
-  let callback = function(mutationList){
+  let callback = function (mutationList) {
+    setMutationNewValue(mutationList);
     let action = {
-      caption: 'mutations('+mutationList.length+')',
+      caption: 'mutations(' + mutationList.length + ')',
       selectedElement: selectedElement$[0],
-      undo:function () {
+      undo: function () {
         observer.disconnect(); // no capture of the undo since will be put in redo
         undoMutations(mutationList);
         //todo set back the selection
-        observer.observe(this.selectedElement,config);
+        observer.observe(this.selectedElement, config);
       },
-      redo:function() {
-        //todo
+      redo: function () {
+        observer.disconnect(); // no capture of the undo since will be put in redo
+        redoMutations(mutationList);
+        //todo set back the selection
+        observer.observe(this.selectedElement, config);
       }
     };
     console.info(action);
