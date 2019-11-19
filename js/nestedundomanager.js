@@ -13,6 +13,7 @@
     // the Class that has only one instance where all EDI related object register
     // there action in order to make them undoable
     this.caption = caption;
+    this.fromUndo = false; // is true while execution an undo or redo operation
     this.clear();
   };
 
@@ -98,17 +99,14 @@
   UndoManager.prototype.undo = function () {
     // undo the last action
     // return the caption of the undo action or undefined if nothing to undo
+    this.fromUndo = true;
     if (this.openAction) { // if an openAction, delegate
-      return this.openAction.undo();
+      let res = this.openAction.undo();
+      this.fromUndo = false;
+      return res;
     }
     if (this.undoStack.length === 0) return undefined;
-    let nextUndoAction = this.undoStack[this.undoStack.length-1];
-    if (nextUndoAction.hasUndoDelegation){
-      if (nextUndoAction.hasUndoDelegation()) { // as long as is has delegation no stack change
-        return nextUndoAction.undo();
-      }
-      this.redoStack.push(this.undoStack.pop());
-    }
+
     if (this.isAtomic) {
       let res = [];
       while (this.undoStack.length) {
@@ -117,30 +115,29 @@
         this.redoStack.push(action);
         res.push(action.caption);
       }
+      this.fromUndo = false;
       return '('+res.join(',')+')';
     }
     let action = this.undoStack.pop();
     if (!action) return undefined;
     let r = action.undo() || '';
     this.redoStack.push(action);
+    this.fromUndo = false;
     return 'undo ' + action.caption+ r;
   };
 
   UndoManager.prototype.redo = function () {
     // redo the last undone action
     // return the caption of the redo action or undefined if nothing to undo
+    this.fromUndo = true;
     if (this.openAction) { // if an openAction, delegate
-      return this.openAction.redo();
+      let res = this.openAction.redo();
+      this.fromUndo = false;
+      return res;
     }
 
     if (this.redoStack.length === 0) return undefined;
-    let nextRedoAction = this.redoStack[this.redoStack.length-1];
-    if (nextRedoAction.hasRedoDelegation) {
-      if (nextRedoAction.hasRedoDelegation()) { // as long as is has delegation no stack change
-        return nextRedoAction.redo();
-      }
-      this.undoStack.push(this.redoStack.pop());
-    }
+
     if (this.isAtomic) {
       let res = [];
       while (this.redoStack.length) {
@@ -149,12 +146,15 @@
         this.undoStack.push(action);
         res.push(action.caption);
       }
+      this.fromUndo = false;
       return '('+res.join(',')+')';
     }
+    this.fromUndo = true;
     let action = this.redoStack.pop();
     if (!action) return undefined;
     let r = action.redo() || '';
     this.undoStack.push(action);
+    this.fromUndo = false;
     return 'redo ' + action.caption + r;
   };
 

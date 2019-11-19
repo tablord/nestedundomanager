@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test for undoable contenteditable elements</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+            crossorigin="anonymous"></script>
+    <script src="../js/nestedundomanager.js"></script>
+    <script src="../js/undoablecontenteditable.js"></script>
+    <script src="../js/undoablejquery.js"></script>
+
+    <script src="https://unpkg.com/chai/chai.js"></script>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/should/should.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css"/>
+</head>
+<body>
+<div>
+    <button id="undo" onclick="globalUndoManager.undo()">undo</button>
+    <button id="redo" onclick="globalUndoManager.redo()">redo</button>
+</div>
+<h1 id="title" contenteditable="true">this title is editable</h1>
+<div id="text" contenteditable="true">as well as this division</div>
+<div id="test2" contenteditable="true">as well as this division</div>
+<div>but not this one</div>
+
+
+<script>
+  // create a global undo manager
+  let globalUndoManager = new UndoManager;
+  let bridge = new ContentEditableObserverForUndoManager(globalUndoManager);
+  ContentEditableObserverForUndoManager.debug = console.info; // only if you want to understand the internal not for production
+
+  $('[contenteditable="true"]')
+  .click(function (event) {
+    bridge.selectElement(event.currentTarget);
+    console.info('selected %s', event.currentTarget.id);
+  })
+  .keydown(function (event) {
+    if (event.keyCode === 90 && event.ctrlKey) { // prevent ctrl-z to activate the browser undo
+      event.preventDefault();
+      return false;
+    }
+    if (event.keyCode === 89 && event.ctrlKey) { // prevent ctrl-z to activate the browser redo
+      event.preventDefault();
+      return false;
+    }
+
+  });
+
+
+</script>
+</body>
+</html>
